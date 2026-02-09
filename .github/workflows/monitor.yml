@@ -5,6 +5,10 @@ on:
     - cron: '*/20 * * * *'  # Every 20 minutes
   workflow_dispatch:  # Manual trigger
 
+# Grant permission to push changes back to the repo
+permissions:
+  contents: write
+
 jobs:
   monitor:
     runs-on: ubuntu-latest
@@ -33,11 +37,26 @@ jobs:
     - name: Connect to VPN
       run: sudo openvpn --config vpn.ovpn --auth-user-pass vpn_creds.txt --daemon
 
-    - name: Run monitor
+    - name: Run monitor with timeout
       env:
         DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         DISCORD_ROLE_ID: ${{ secrets.DISCORD_ROLE_ID }}
-      run: python ORIGINAL.py
+      # We use 'timeout' to stop the script after 10 minutes (allowing 10 mins of monitoring)
+      # '|| true' ensures the workflow doesn't fail when the timeout kills the script
+      run: timeout 10m python giveaway.py || true
 
     - name: Disconnect VPN
-      run: sudo killall openvpn
+      if: always() # Run this even if the python script crashes
+      run: sudo killall openvpn || true
+
+    - name: Commit and Push DB state
+      if: always() # Ensure we save even if the script timed out
+      run: |
+        git config --global user.name "GitHub Action"
+        git config --global user.email "action@github.com"
+        
+        # Add the database and log files (add any other files you need to persist)
+        git add giveaway_monitor.db metrics.json
+        
+        # Only commit if there are changes (prevents errors if nothing new was found)
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Update monitor state [skip ci]" && git push)
