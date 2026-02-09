@@ -123,7 +123,7 @@ class Config:
     LOG_BACKUP_COUNT: int = 3
     
     # User agent for Reddit requests
-    USER_AGENT: str = "python:giveaway-monitor:v2.4 by u/Cautious-Secret9975"
+    USER_AGENT: str = "python:giveaway-monitor:v2.4 by u/Level-Airport1022"
     
     # Required environment variables
     REQUIRED_ENV_VARS: List[str] = field(default_factory=lambda: [
