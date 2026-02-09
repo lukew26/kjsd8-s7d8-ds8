@@ -1,4 +1,4 @@
-name: Giveaway Monitor
+name: Giveaway
 
 on:
   schedule:
