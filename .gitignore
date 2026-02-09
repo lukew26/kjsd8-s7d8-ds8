@@ -1,0 +1,13 @@
+# Credentials and Secrets
+.env
+vpn_creds.txt
+vpn.ovpn
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+ENV/
+giveaway_monitor.log
+giveaway_monitor.db
