@@ -17,33 +17,27 @@ jobs:
       with:
         python-version: '3.10'
     
-    - name: Install dependencies + ProtonVPN CLI
+    - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y wget gnupg2 lsb-release openvpn python3-pip curl
-        # Add ProtonVPN repo
-        wget -q -O - https://repo.protonvpn.com/debian/public_key.asc | sudo apt-key add -
-        echo 'deb https://repo.protonvpn.com/debian stable main' | sudo tee /etc/apt/sources.list.d/protonvpn.list
-        sudo apt-get update
-        sudo apt-get install -y protonvpn-cli
+        sudo apt-get install -y openvpn python3-pip
         pip install requests python-dotenv
 
-    - name: Login to ProtonVPN
-      env:
-        PVPN_USER: ${{ secrets.PROTON_USERNAME }}
-        PVPN_PASS: ${{ secrets.PROTON_PASSWORD }}
+    - name: Save VPN config
+      run: echo "${{ secrets.VPN_CONFIG }}" > vpn.ovpn
+
+    - name: Create VPN credentials file
       run: |
-        echo "$PVPN_PASS" | sudo protonvpn-cli login --username "$PVPN_USER"
+        echo -e "${{ secrets.VPN_USER }}\n${{ secrets.VPN_PASS }}" > vpn_creds.txt
 
     - name: Connect to VPN
-      run: sudo protonvpn-cli c -f  # Connect to fastest free server
+      run: sudo openvpn --config vpn.ovpn --auth-user-pass vpn_creds.txt --daemon
 
     - name: Run monitor
       env:
         DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         DISCORD_ROLE_ID: ${{ secrets.DISCORD_ROLE_ID }}
-      run: |
-        python ORIGINAL.py
+      run: python ORIGINAL.py
 
     - name: Disconnect VPN
-      run: sudo protonvpn-cli d
+      run: sudo killall openvpn
