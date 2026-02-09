@@ -1,4 +1,4 @@
-name: Giveaway
+name: Giveaway Monitor
 
 on:
   schedule:
@@ -26,4 +26,4 @@ jobs:
         DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         DISCORD_ROLE_ID: ${{ secrets.DISCORD_ROLE_ID }}
       run: |
-        python giveaway_improved.py --console
+        python ORIGINAL.py
