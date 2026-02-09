@@ -3,10 +3,10 @@ name: Giveaway Monitor
 on:
   schedule:
     - cron: '*/5 * * * *'  # Runs every 5 minutes
-  workflow_dispatch:
+  workflow_dispatch:      # Allows you to run it manually from the Actions tab
 
 permissions:
-  contents: write
+  contents: write         # Crucial: Allows the bot to save seen_posts.txt back to your repo
 
 jobs:
   monitor:
@@ -15,7 +15,9 @@ jobs:
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v3
-    
+      with:
+        fetch-depth: 0    # Fetches all history so git pull works correctly
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
@@ -39,7 +41,8 @@ jobs:
       env:
         DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         DISCORD_ROLE_ID: ${{ secrets.DISCORD_ROLE_ID }}
-      # Run for 4 minutes
+      # timeout 4m stops the script before the next 5-minute cycle begins
+      # '|| true' prevents the workflow from failing when the timeout hits
       run: timeout 4m python ORIGINAL.py || true
 
     - name: Disconnect VPN
@@ -52,16 +55,22 @@ jobs:
         git config --global user.name "GitHub Action"
         git config --global user.email "action@github.com"
         
-        # 1. STOP tracking the log file (removes it from GitHub history if it exists)
+        # 1. Pull any changes from the previous run to stay synced
+        git pull origin main --rebase || true
+        
+        # 2. Stop tracking the log file so it's not public
         git rm --cached giveaway_monitor.log || true
         
-        # 2. FORCE add ONLY the essential memory files
+        # 3. Ensure memory files exist so 'git add' doesn't fail
+        touch seen_posts.txt metrics.json last_shutdown.txt
+        
+        # 4. Force add only the essential memory files
         git add -f seen_posts.txt metrics.json last_shutdown.txt
         
-        # 3. Only commit if the memory files changed
+        # 5. Only commit and push if there is new data to remember
         if [ -n "$(git status --porcelain)" ]; then
-          git commit -m "Update state [skip ci]"
+          git commit -m "Update monitor state [skip ci]"
           git push
         else
-          echo "No data changes to save."
+          echo "No new posts to save to memory."
         fi
