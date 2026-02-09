@@ -2,10 +2,9 @@ name: Giveaway Monitor
 
 on:
   schedule:
-    - cron: '*/20 * * * *'  # Every 20 minutes
-  workflow_dispatch:  # Manual trigger
+    - cron: '*/5 * * * *'  # Runs every 5 minutes
+  workflow_dispatch:      # Allows manual trigger
 
-# Grant permission to push changes back to the repo
 permissions:
   contents: write
 
@@ -14,49 +13,47 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout Repository
+      uses: actions/checkout@v3
     
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
     
-    - name: Install dependencies
+    - name: Install Dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y openvpn python3-pip
         pip install requests python-dotenv
 
-    - name: Save VPN config
-      run: echo "${{ secrets.VPN_CONFIG }}" > vpn.ovpn
-
-    - name: Create VPN credentials file
+    - name: Configure VPN
       run: |
+        echo "${{ secrets.VPN_CONFIG }}" > vpn.ovpn
         echo -e "${{ secrets.VPN_USER }}\n${{ secrets.VPN_PASS }}" > vpn_creds.txt
 
     - name: Connect to VPN
       run: sudo openvpn --config vpn.ovpn --auth-user-pass vpn_creds.txt --daemon
 
-    - name: Run monitor with timeout
+    - name: Run Monitor
       env:
         DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         DISCORD_ROLE_ID: ${{ secrets.DISCORD_ROLE_ID }}
-      # We use 'timeout' to stop the script after 10 minutes (allowing 10 mins of monitoring)
-      # '|| true' ensures the workflow doesn't fail when the timeout kills the script
-      run: timeout 10m python giveaway.py || true
+      # Run for 4 minutes to allow time for the git commit before the 5-min cycle repeats
+      run: timeout 4m python ORIGINAL.py || true
 
     - name: Disconnect VPN
-      if: always() # Run this even if the python script crashes
+      if: always()
       run: sudo killall openvpn || true
 
-    - name: Commit and Push DB state
-      if: always() # Ensure we save even if the script timed out
+    - name: Save and Push State
+      if: always()
       run: |
         git config --global user.name "GitHub Action"
         git config --global user.email "action@github.com"
         
-        # Add the database and log files (add any other files you need to persist)
-        git add giveaway_monitor.db metrics.json
+        # Add all files used by your script to maintain state
+        git add seen_posts.txt metrics.json last_shutdown.txt giveaway_monitor.log
         
-        # Only commit if there are changes (prevents errors if nothing new was found)
-        git diff --quiet && git diff --staged --quiet || (git commit -m "Update monitor state [skip ci]" && git push)
+        # Only push if changes exist
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Update state [skip ci]" && git push)
