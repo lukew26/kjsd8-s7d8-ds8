@@ -1,13 +1,21 @@
-# Credentials and Secrets
+# --- Secrets & Environment ---
 .env
 vpn_creds.txt
 vpn.ovpn
 
-# Python artifacts
+# --- Logs (Private Info) ---
+*.log
+giveaway_monitor.log
+
+# --- Python & System ---
 __pycache__/
 *.py[cod]
-*$py.class
-venv/
-ENV/
-giveaway_monitor.log
-giveaway_monitor.db
+.DS_Store
+Thumbs.db
+
+# --- Optional: Local Data ---
+# If you don't want your LOCAL testing data to ever overwrite 
+# the data on GitHub, uncomment the lines below:
+# seen_posts.txt
+# metrics.json
+# last_shutdown.txt
