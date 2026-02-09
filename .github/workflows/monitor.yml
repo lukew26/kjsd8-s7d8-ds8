@@ -1,16 +1,67 @@
-- name: Save and Push State
+name: Giveaway Monitor
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # Runs every 5 minutes
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y openvpn python3-pip
+        pip install requests python-dotenv
+
+    - name: Configure VPN
+      run: |
+        echo "${{ secrets.VPN_CONFIG }}" > vpn.ovpn
+        echo -e "${{ secrets.VPN_USER }}\n${{ secrets.VPN_PASS }}" > vpn_creds.txt
+
+    - name: Connect to VPN
+      run: sudo openvpn --config vpn.ovpn --auth-user-pass vpn_creds.txt --daemon
+
+    - name: Run Monitor
+      env:
+        DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        DISCORD_ROLE_ID: ${{ secrets.DISCORD_ROLE_ID }}
+      # Run for 4 minutes
+      run: timeout 4m python ORIGINAL.py || true
+
+    - name: Disconnect VPN
+      if: always()
+      run: sudo killall openvpn || true
+
+    - name: Save and Push State (Privacy Mode)
       if: always()
       run: |
         git config --global user.name "GitHub Action"
         git config --global user.email "action@github.com"
         
-        # We use -f to force add files even if .gitignore tries to block them
-        git add -f seen_posts.txt metrics.json last_shutdown.txt giveaway_monitor.log || true
+        # 1. STOP tracking the log file (removes it from GitHub history if it exists)
+        git rm --cached giveaway_monitor.log || true
         
-        # Check if there are actually changes to commit
+        # 2. FORCE add ONLY the essential memory files
+        git add -f seen_posts.txt metrics.json last_shutdown.txt
+        
+        # 3. Only commit if the memory files changed
         if [ -n "$(git status --porcelain)" ]; then
-          git commit -m "Update monitor state [skip ci]"
+          git commit -m "Update state [skip ci]"
           git push
         else
-          echo "No changes to commit"
+          echo "No data changes to save."
         fi
