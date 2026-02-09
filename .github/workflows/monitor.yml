@@ -19,11 +19,26 @@ jobs:
     
     - name: Install dependencies
       run: |
-        pip install requests python-dotenv
-    
+        pip install requests python-dotenv protonvpn-cli
+        sudo apt-get update
+        sudo apt-get install -y openvpn curl
+
+    - name: Login to ProtonVPN
+      env:
+        PVPN_USER: ${{ secrets.PROTON_USERNAME }}
+        PVPN_PASS: ${{ secrets.PROTON_PASSWORD }}
+      run: |
+        echo "$PVPN_PASS" | protonvpn-cli login --username "$PVPN_USER"
+
+    - name: Connect to VPN
+      run: protonvpn-cli c -f  # Connect to fastest free server
+
     - name: Run monitor
       env:
         DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         DISCORD_ROLE_ID: ${{ secrets.DISCORD_ROLE_ID }}
       run: |
         python ORIGINAL.py
+
+    - name: Disconnect VPN
+      run: protonvpn-cli d
