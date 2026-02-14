@@ -1,9 +1,7 @@
 name: 24-7 Giveaway Monitor
 
 on:
-  workflow_dispatch:
-  schedule:
-    - cron: '0 */6 * * *' # Backup trigger every 6 hours
+  workflow_dispatch:   # only manual start once
 
 permissions:
   contents: write
@@ -37,8 +35,6 @@ jobs:
       env:
         DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         DISCORD_ROLE_ID: ${{ secrets.DISCORD_ROLE_ID }}
-      # Run for 5 hours and 30 minutes, then signal exit
-      # We use --signal=SIGINT so your Python script catches the stop signal
       run: timeout --signal=SIGINT 330m python ORIGINAL.py || true
 
     - name: Save State and Relay
@@ -51,6 +47,5 @@ jobs:
         git pull origin main --rebase || true
         git add seen_posts.txt metrics.json last_shutdown.txt
         git commit -m "Relay state update [skip ci]" && git push || echo "No changes"
-        
-        # Trigger the next 6-hour block
+
         gh workflow run "24-7 Giveaway Monitor"
