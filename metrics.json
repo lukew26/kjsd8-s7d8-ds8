@@ -1,15 +1,15 @@
 {
-  "total_uptime": 303509.14064621925,
-  "total_posts_checked": 93,
-  "total_giveaways_found": 59,
-  "total_notifications_sent": 59,
+  "total_uptime": 323309.0291132927,
+  "total_posts_checked": 97,
+  "total_giveaways_found": 63,
+  "total_notifications_sent": 63,
   "total_notifications_failed": 0,
-  "total_api_errors": 403,
+  "total_api_errors": 406,
   "total_circuit_breaker_opens": 0,
   "total_rate_limit_hits": 0,
   "total_catchup_runs": 80,
   "total_catchup_posts_found": 0,
-  "total_search_queries": 28663,
-  "session_start": 1771269929.8799067,
-  "last_update": 1771289729.758274
+  "total_search_queries": 30524,
+  "session_start": 1771289755.7552078,
+  "last_update": 1771309555.6437016
 }
