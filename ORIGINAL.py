@@ -311,6 +311,7 @@ class CircuitBreaker:
                     old_state = self.state
                     self.state = CircuitBreakerState.HALF_OPEN
                     self.half_open_attempts = 0
+                    self.successes = 0
                     logging.info("[CB] Circuit breaker entering HALF_OPEN state")
                     self._notify_state_change(old_state, self.state)
             
@@ -323,7 +324,7 @@ class CircuitBreaker:
             result = func(*args, **kwargs)
             self._on_success()
             return result
-        except Exception as e:
+        except Exception:
             self._on_failure()
             raise
     
@@ -419,8 +420,9 @@ class RedditRateLimiter:
                         f"resets in {self.rate_limit_info.reset}s"
                     )
                     
-                    # Warn if approaching limit
-                    if self.rate_limit_info.remaining <= (config.REDDIT_RATE_LIMIT_QPM - self.warning_threshold):
+                    # Warn if approaching limit based on observed header quota
+                    remaining_threshold = int(total * (1 - config.REDDIT_RATE_WARNING_THRESHOLD))
+                    if self.rate_limit_info.remaining <= max(remaining_threshold, config.REDDIT_RATE_SAFETY_BUFFER):
                         logging.warning(
                             f"[RATE] Approaching rate limit! Only {self.rate_limit_info.remaining} requests remaining"
                         )
